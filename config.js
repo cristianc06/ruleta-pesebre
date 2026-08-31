@@ -1,0 +1,4 @@
+window.RULETA_CONFIG = {
+  supabaseUrl: 'https://sihjxgnbappsmntswmdc.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpaGp4Z25iYXBwc21udHN3bWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjE5ODksImV4cCI6MjA5ODMzNzk4OX0.OrFc389Ul_s5TyrFwiEdHUUgLhROjTCboV8LklhuNP0'
+};
