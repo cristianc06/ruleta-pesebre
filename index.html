@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#12335b" />
+  <title>La Ruleta del Pesebre</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page-shell">
+    <header class="hero">
+      <div class="title-board">
+        <h1>LA RULETA<br><span>DEL PESEBRE</span></h1>
+        <p>¡Gira y que Dios decida!</p>
+      </div>
+    </header>
+
+    <section class="game-layout">
+      <aside class="panel parchment">
+        <h2>¡ÚNETE AL PESEBRE!</h2>
+        <p>Escribe tu nombre para participar en la ruleta sagrada.</p>
+        <form id="participantForm" class="join-form">
+          <label class="sr-only" for="nameInput">Nombre</label>
+          <input id="nameInput" maxlength="30" autocomplete="off" placeholder="Escribe tu nombre aquí..." required />
+          <button type="submit">Participar</button>
+        </form>
+
+        <div class="participants-head">PARTICIPANTES DEL PESEBRE</div>
+        <ul id="participantsList" class="participants-list"></ul>
+      </aside>
+
+      <section class="wheel-area">
+        <div class="wheel-caption">¡GIRA Y QUE DIOS DECIDA!</div>
+        <div class="wheel-wrap">
+          <div class="pointer">★</div>
+          <canvas id="wheel" width="900" height="900" aria-label="Ruleta de participantes"></canvas>
+        </div>
+        <button id="spinButton" class="spin-button" type="button">¡GIRAR!</button>
+        <div id="result" class="result" aria-live="polite"></div>
+      </section>
+    </section>
+
+    <section class="characters" aria-hidden="true">
+      <div class="character-placeholder left">María · José · Niño</div>
+      <div class="character-placeholder right">Reyes Magos</div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
