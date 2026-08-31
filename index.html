@@ -26,18 +26,18 @@
 
     <section class="stable" aria-label="Juego de la ruleta del pesebre">
       <div class="roof" aria-hidden="true"></div>
+      <img class="decor decor-star" src="assets/star.svg" alt="" aria-hidden="true" />
+      <img class="decor decor-lantern" src="assets/lantern.svg" alt="" aria-hidden="true" />
 
       <aside class="parchment" aria-label="Registro de participantes">
         <div class="paper-pin">★</div>
         <h2>¡ÚNETE AL PESEBRE!</h2>
         <p class="intro">Escribe tu nombre para participar en la ruleta sagrada.</p>
-
         <form id="participantForm" autocomplete="off">
           <label class="sr-only" for="participantName">Tu nombre</label>
           <input id="participantName" name="participantName" maxlength="30" placeholder="Escribe tu nombre aquí..." required />
           <button class="join-button" type="submit"><span>★</span> PARTICIPAR</button>
         </form>
-
         <div class="list-heading"><span></span><b>PARTICIPANTES DEL PESEBRE</b><span></span></div>
         <div id="participantList" class="participant-list" aria-live="polite"></div>
         <div class="total">Total de participantes: <strong id="participantTotal">0</strong></div>
@@ -59,21 +59,20 @@
         <img class="kings-asset" src="assets/reyes.svg" alt="" />
       </div>
     </section>
-
     <footer>La Ruleta del Pesebre · Juego entre amigos</footer>
   </main>
 
   <dialog id="winnerDialog" class="winner-dialog">
     <div class="winner-card">
       <button id="closeWinner" class="close-dialog" type="button" aria-label="Cerrar">×</button>
+      <img class="winner-baby" src="assets/familia.svg" alt="" aria-hidden="true" />
       <div class="winner-star">★</div>
       <p>Y el elegido del pesebre es...</p>
-      <h2 id="winnerName">Viviana</h2>
+      <h2 id="winnerName"></h2>
       <div class="hallelujah">✨ ¡ALELUYA! ✨</div>
-      <button id="spinAgain" class="spin-again" type="button">Girar otra vez</button>
+      <button id="spinAgain" class="spin-again" type="button">Cerrar</button>
     </div>
   </dialog>
-
   <script src="app.js" defer></script>
 </body>
 </html>
