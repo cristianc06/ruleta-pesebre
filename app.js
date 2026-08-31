@@ -1,222 +1,152 @@
 (() => {
-  const form = document.getElementById('participantForm');
-  const input = document.getElementById('participantName');
-  const list = document.getElementById('participantList');
-  const total = document.getElementById('participantTotal');
-  const canvas = document.getElementById('wheelCanvas');
-  const ctx = canvas.getContext('2d');
-  const spinButton = document.getElementById('spinButton');
-  const result = document.getElementById('result');
-  const dialog = document.getElementById('winnerDialog');
-  const winnerName = document.getElementById('winnerName');
-  const closeWinner = document.getElementById('closeWinner');
-  const spinAgain = document.getElementById('spinAgain');
+  const script = document.createElement('script');
+  script.src = 'config.js';
+  script.onload = init;
+  script.onerror = () => console.error('No se pudo cargar config.js');
+  document.head.appendChild(script);
 
-  const ALWAYS_WINNER = 'Viviana';
-  const STORAGE_KEY = 'ruleta-pesebre-participants-v1';
-  const palette = ['#6d3f8f','#55a82e','#ec681f','#f1a813','#397eb8','#ef4f62','#39a3b8','#f0aa17','#d45c88','#7660a8'];
+  function init() {
+    const { supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_KEY } = window.RULETA_CONFIG || {};
+    const PARTICIPANTS = ['Contreras','Ramón','Sneider','Jaidis','Ingris','Guadalupe','Peña','Viviana','Fernando'];
+    const palette = ['#6d3f8f','#55a82e','#ec681f','#f1a813','#397eb8','#ef4f62','#39a3b8','#f0aa17','#d45c88'];
 
-  let participants = loadParticipants();
-  let rotation = 0;
-  let spinning = false;
-  let rafId = null;
+    const form = document.getElementById('participantForm');
+    const input = document.getElementById('participantName');
+    const list = document.getElementById('participantList');
+    const total = document.getElementById('participantTotal');
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinButton = document.getElementById('spinButton');
+    const result = document.getElementById('result');
+    const dialog = document.getElementById('winnerDialog');
+    const winnerName = document.getElementById('winnerName');
+    const closeWinner = document.getElementById('closeWinner');
+    const spinAgain = document.getElementById('spinAgain');
+    const joinButton = form.querySelector('button[type="submit"]');
 
-  ensureWinner();
-  renderParticipants();
-  drawWheel();
+    let rotation = 0;
+    let spinning = false;
+    let claimToken = null;
 
-  function loadParticipants() {
-    try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      if (Array.isArray(raw)) return raw.filter(Boolean).slice(0, 40);
-    } catch (_) {}
-    return [];
-  }
+    renderParticipants();
+    drawWheel();
+    spinButton.disabled = true;
 
-  function saveParticipants() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(participants)); } catch (_) {}
-  }
-
-  function ensureWinner() {
-    if (!participants.some(p => p.name.toLowerCase() === ALWAYS_WINNER.toLowerCase())) {
-      participants.unshift({ name: ALWAYS_WINNER, createdAt: Date.now() - 60000 });
-      saveParticipants();
+    async function rpc(name, body) {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) throw new Error(`Supabase ${response.status}`);
+      return response.json();
     }
-  }
 
-  function cleanName(value) {
-    return value.replace(/\s+/g, ' ').trim().slice(0, 30);
-  }
+    function cleanName(value) { return value.replace(/\s+/g, ' ').trim().slice(0, 30); }
+    function escapeHTML(value) { return String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 
-  function escapeHTML(value) {
-    return String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  }
-
-  function formatTime(ts) {
-    return new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' }).format(new Date(ts));
-  }
-
-  function renderParticipants() {
-    const ordered = participants.slice().sort((a, b) => a.createdAt - b.createdAt);
-    list.innerHTML = ordered.map(p => `
-      <div class="participant-row">
-        <span class="icon">♟</span>
-        <span>${escapeHTML(p.name)}</span>
-        <time>${formatTime(p.createdAt)}</time>
-      </div>`).join('');
-    total.textContent = String(participants.length);
-  }
-
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const name = cleanName(input.value);
-    if (!name) return;
-    const exists = participants.some(p => p.name.toLowerCase() === name.toLowerCase());
-    if (!exists) {
-      participants.push({ name, createdAt: Date.now() });
-      saveParticipants();
-      renderParticipants();
-      drawWheel();
+    function renderParticipants() {
+      list.innerHTML = PARTICIPANTS.map(name => `<div class="participant-row"><span class="icon">♟</span><span>${escapeHTML(name)}</span><time>★</time></div>`).join('');
+      total.textContent = String(PARTICIPANTS.length);
     }
-    input.value = '';
-    input.focus();
-  });
 
-  function drawWheel() {
-    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    const cssSize = 900;
-    if (canvas.width !== cssSize * dpr) {
-      canvas.width = cssSize * dpr;
-      canvas.height = cssSize * dpr;
-    }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssSize, cssSize);
-
-    const names = participants.map(p => p.name);
-    const count = Math.max(1, names.length);
-    const cx = cssSize / 2;
-    const cy = cssSize / 2;
-    const r = cssSize / 2 - 14;
-    const slice = Math.PI * 2 / count;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rotation);
-
-    names.forEach((name, i) => {
-      const start = i * slice - Math.PI / 2;
-      const end = start + slice;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, r, start, end);
-      ctx.closePath();
-      ctx.fillStyle = palette[i % palette.length];
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(50,25,9,.72)';
-      ctx.lineWidth = 5;
-      ctx.stroke();
-
-      ctx.save();
-      ctx.rotate(start + slice / 2);
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#fff9e6';
-      ctx.strokeStyle = 'rgba(38,19,7,.9)';
-      ctx.lineWidth = 8;
-      const maxFont = count <= 7 ? 47 : count <= 10 ? 38 : count <= 15 ? 30 : 24;
-      let fontSize = maxFont;
-      ctx.font = `900 ${fontSize}px Nunito, sans-serif`;
-      const label = name.length > 16 ? name.slice(0, 15) + '…' : name;
-      const maxWidth = r * .60;
-      while (fontSize > 18 && ctx.measureText(label).width > maxWidth) {
-        fontSize -= 2;
-        ctx.font = `900 ${fontSize}px Nunito, sans-serif`;
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (claimToken || spinning) return;
+      const name = cleanName(input.value);
+      if (!name) return;
+      joinButton.disabled = true;
+      input.disabled = true;
+      result.textContent = 'Validando tu nombre…';
+      try {
+        const rows = await rpc('ruleta_claim_participant', { input_name: name });
+        const data = Array.isArray(rows) ? rows[0] : rows;
+        if (!data?.ok) {
+          result.textContent = data?.status === 'already_used' ? '⚠️ Ese participante ya realizó su giro.' : data?.status === 'not_found' ? '⚠️ Ese nombre no está en la lista de participantes.' : '⚠️ Revisa el nombre e inténtalo nuevamente.';
+          joinButton.disabled = false;
+          input.disabled = false;
+          input.select();
+          return;
+        }
+        claimToken = data.claim_token;
+        result.textContent = `✅ ${data.display_name}, tu nombre fue validado. ¡Ya puedes girar!`;
+        input.value = data.display_name;
+        spinButton.disabled = false;
+        joinButton.textContent = '✓ VALIDADO';
+      } catch (error) {
+        console.error(error);
+        result.textContent = '⚠️ No pudimos validar ahora. Intenta nuevamente.';
+        joinButton.disabled = false;
+        input.disabled = false;
       }
-      ctx.strokeText(label, r - 45, 0);
-      ctx.fillText(label, r - 45, 0);
-      ctx.restore();
     });
 
-    ctx.restore();
-  }
-
-  function normalizeAngle(a) {
-    const tau = Math.PI * 2;
-    return ((a % tau) + tau) % tau;
-  }
-
-  function spin() {
-    if (spinning || participants.length < 2) return;
-    const winnerIndex = participants.findIndex(p => p.name.toLowerCase() === ALWAYS_WINNER.toLowerCase());
-    if (winnerIndex < 0) return;
-
-    spinning = true;
-    spinButton.disabled = true;
-    result.textContent = 'La ruleta está decidiendo…';
-
-    const slice = Math.PI * 2 / participants.length;
-    const winnerCenter = winnerIndex * slice + slice / 2;
-    const desired = normalizeAngle(-winnerCenter);
-    const current = normalizeAngle(rotation);
-    let delta = normalizeAngle(desired - current);
-    delta += (7 + Math.floor(Math.random() * 3)) * Math.PI * 2;
-
-    const startRotation = rotation;
-    const targetRotation = startRotation + delta;
-    const duration = 4600 + Math.random() * 700;
-    const startedAt = performance.now();
-    const easeOutQuint = t => 1 - Math.pow(1 - t, 5);
-
-    const frame = now => {
-      const t = Math.min(1, (now - startedAt) / duration);
-      rotation = startRotation + (targetRotation - startRotation) * easeOutQuint(t);
-      drawWheel();
-      if (t < 1) {
-        rafId = requestAnimationFrame(frame);
-      } else {
-        rotation = targetRotation;
-        drawWheel();
-        spinning = false;
-        spinButton.disabled = false;
-        result.textContent = `✨ El pesebre ha elegido a ${ALWAYS_WINNER} ✨`;
-        showWinner();
-      }
-    };
-
-    rafId = requestAnimationFrame(frame);
-  }
-
-  function showWinner() {
-    winnerName.textContent = ALWAYS_WINNER;
-    confetti();
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.setAttribute('open', '');
-  }
-
-  function closeDialog() {
-    if (typeof dialog.close === 'function') dialog.close();
-    else dialog.removeAttribute('open');
-  }
-
-  function confetti() {
-    const colors = ['#ffd23f','#ef476f','#06d6a0','#118ab2','#ffffff','#f78c2b'];
-    for (let i = 0; i < 80; i++) {
-      const piece = document.createElement('i');
-      piece.className = 'confetti';
-      piece.style.left = Math.random() * 100 + 'vw';
-      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-      piece.style.setProperty('--x', (Math.random() * 280 - 140) + 'px');
-      piece.style.animationDuration = (2.6 + Math.random() * 2.8) + 's';
-      piece.style.animationDelay = (Math.random() * .25) + 's';
-      document.body.appendChild(piece);
-      setTimeout(() => piece.remove(), 6000);
+    function drawWheel() {
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const size = 900;
+      if (canvas.width !== size * dpr) { canvas.width = size * dpr; canvas.height = size * dpr; }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, size, size);
+      const count = PARTICIPANTS.length, cx = size/2, cy = size/2, r = size/2 - 14, slice = Math.PI*2/count;
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(rotation);
+      PARTICIPANTS.forEach((name, i) => {
+        const start = i*slice - Math.PI/2, end = start + slice;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,r,start,end); ctx.closePath();
+        ctx.fillStyle = palette[i % palette.length]; ctx.fill();
+        ctx.strokeStyle = 'rgba(50,25,9,.72)'; ctx.lineWidth = 5; ctx.stroke();
+        ctx.save(); ctx.rotate(start + slice/2); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff9e6'; ctx.strokeStyle = 'rgba(38,19,7,.9)'; ctx.lineWidth = 8;
+        let fontSize = 38; ctx.font = `900 ${fontSize}px Nunito, sans-serif`;
+        while (fontSize > 18 && ctx.measureText(name).width > r*.60) { fontSize -= 2; ctx.font = `900 ${fontSize}px Nunito, sans-serif`; }
+        ctx.strokeText(name, r-45, 0); ctx.fillText(name, r-45, 0); ctx.restore();
+      });
+      ctx.restore();
     }
-  }
 
-  spinButton.addEventListener('click', spin);
-  closeWinner.addEventListener('click', closeDialog);
-  spinAgain.addEventListener('click', () => { closeDialog(); setTimeout(spin, 180); });
-  dialog.addEventListener('click', e => { if (e.target === dialog) closeDialog(); });
-  window.addEventListener('resize', drawWheel, { passive: true });
-  window.addEventListener('beforeunload', () => { if (rafId) cancelAnimationFrame(rafId); });
+    function normalizeAngle(a) { const tau = Math.PI*2; return ((a % tau) + tau) % tau; }
+
+    async function spin() {
+      if (spinning || !claimToken) return;
+      spinning = true; spinButton.disabled = true; result.textContent = 'La ruleta está decidiendo…';
+      let winner;
+      try {
+        const rows = await rpc('ruleta_spin', { input_claim_token: claimToken });
+        const data = Array.isArray(rows) ? rows[0] : rows;
+        if (!data?.ok) { result.textContent = '⚠️ Este participante ya realizó su giro.'; claimToken = null; spinning = false; return; }
+        winner = data.winner;
+      } catch (error) {
+        console.error(error); result.textContent = '⚠️ No se pudo realizar el giro. Intenta de nuevo.'; spinButton.disabled = false; spinning = false; return;
+      }
+      const winnerIndex = PARTICIPANTS.findIndex(n => n.localeCompare(winner, 'es', { sensitivity:'base' }) === 0);
+      const slice = Math.PI*2/PARTICIPANTS.length;
+      const desired = normalizeAngle(-(winnerIndex*slice + slice/2));
+      let delta = normalizeAngle(desired - normalizeAngle(rotation));
+      delta += (7 + Math.floor(Math.random()*3))*Math.PI*2;
+      const start = rotation, target = start + delta, duration = 4700 + Math.random()*600, startedAt = performance.now();
+      const frame = now => {
+        const t = Math.min(1, (now-startedAt)/duration), eased = 1-Math.pow(1-t,5);
+        rotation = start + (target-start)*eased; drawWheel();
+        if (t < 1) requestAnimationFrame(frame);
+        else {
+          spinning = false; claimToken = null;
+          result.textContent = `✨ El pesebre ha elegido a ${winner} ✨`;
+          winnerName.textContent = winner; confetti();
+          if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open','');
+        }
+      };
+      requestAnimationFrame(frame);
+    }
+
+    function closeDialog() { if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open'); }
+    function confetti() {
+      const colors = ['#ffd23f','#ef476f','#06d6a0','#118ab2','#ffffff','#f78c2b'];
+      for (let i=0;i<80;i++) { const p=document.createElement('i'); p.className='confetti'; p.style.left=Math.random()*100+'vw'; p.style.background=colors[Math.floor(Math.random()*colors.length)]; p.style.setProperty('--x',(Math.random()*280-140)+'px'); p.style.animationDuration=(2.6+Math.random()*2.8)+'s'; document.body.appendChild(p); setTimeout(()=>p.remove(),6000); }
+    }
+
+    spinButton.addEventListener('click', spin);
+    closeWinner.addEventListener('click', closeDialog);
+    spinAgain.addEventListener('click', closeDialog);
+    dialog.addEventListener('click', e => { if (e.target === dialog) closeDialog(); });
+    window.addEventListener('resize', drawWheel, { passive:true });
+  }
 })();
