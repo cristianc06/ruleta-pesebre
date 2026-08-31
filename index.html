@@ -2,52 +2,79 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#12335b" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#071d3b" />
+  <meta name="description" content="La Ruleta del Pesebre" />
   <title>La Ruleta del Pesebre</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="page-shell">
-    <header class="hero">
-      <div class="title-board">
-        <h1>LA RULETA<br><span>DEL PESEBRE</span></h1>
-        <p>¡Gira y que Dios decida!</p>
+  <div class="stars" aria-hidden="true"></div>
+  <main class="stage">
+    <header class="masthead">
+      <div class="character donkey" aria-hidden="true"><span>🐴</span></div>
+      <div class="wood-sign">
+        <h1><span>LA RULETA</span><strong>DEL PESEBRE</strong></h1>
+        <p>¡GIRA Y QUE DIOS DECIDA!</p>
       </div>
+      <div class="character ox" aria-hidden="true"><span>🐂</span></div>
     </header>
 
-    <section class="game-layout">
-      <aside class="panel parchment">
+    <section class="stable" aria-label="Juego de la ruleta del pesebre">
+      <div class="roof" aria-hidden="true"></div>
+
+      <aside class="parchment" aria-label="Registro de participantes">
+        <div class="paper-pin">★</div>
         <h2>¡ÚNETE AL PESEBRE!</h2>
-        <p>Escribe tu nombre para participar en la ruleta sagrada.</p>
-        <form id="participantForm" class="join-form">
-          <label class="sr-only" for="nameInput">Nombre</label>
-          <input id="nameInput" maxlength="30" autocomplete="off" placeholder="Escribe tu nombre aquí..." required />
-          <button type="submit">Participar</button>
+        <p class="intro">Escribe tu nombre para participar en la ruleta sagrada.</p>
+
+        <form id="participantForm" autocomplete="off">
+          <label class="sr-only" for="participantName">Tu nombre</label>
+          <input id="participantName" name="participantName" maxlength="30" placeholder="Escribe tu nombre aquí..." required />
+          <button class="join-button" type="submit"><span>★</span> PARTICIPAR</button>
         </form>
 
-        <div class="participants-head">PARTICIPANTES DEL PESEBRE</div>
-        <ul id="participantsList" class="participants-list"></ul>
+        <div class="list-heading"><span></span><b>PARTICIPANTES DEL PESEBRE</b><span></span></div>
+        <div id="participantList" class="participant-list" aria-live="polite"></div>
+        <div class="total">Total de participantes: <strong id="participantTotal">0</strong></div>
       </aside>
 
       <section class="wheel-area">
         <div class="wheel-caption">¡GIRA Y QUE DIOS DECIDA!</div>
         <div class="wheel-wrap">
-          <div class="pointer">★</div>
-          <canvas id="wheel" width="900" height="900" aria-label="Ruleta de participantes"></canvas>
+          <div class="pointer" aria-hidden="true"><span>★</span></div>
+          <canvas id="wheelCanvas" width="900" height="900" aria-label="Ruleta de participantes"></canvas>
+          <div class="hub" aria-hidden="true">★</div>
         </div>
-        <button id="spinButton" class="spin-button" type="button">¡GIRAR!</button>
-        <div id="result" class="result" aria-live="polite"></div>
+        <button id="spinButton" class="spin-button" type="button">¡GIRAR LA RULETA!<small>Que empiece la voluntad divina 😇</small></button>
+        <div id="result" class="result" role="status" aria-live="assertive"></div>
       </section>
+
+      <div class="characters-bottom" aria-hidden="true">
+        <div class="mary">👩🏻‍🦱</div>
+        <div class="joseph">🧔🏻</div>
+        <div class="baby">👶🏻</div>
+        <div class="kings"><span>🤴🏿</span><span>🤴🏻</span><span>🤴🏽</span></div>
+      </div>
     </section>
 
-    <section class="characters" aria-hidden="true">
-      <div class="character-placeholder left">María · José · Niño</div>
-      <div class="character-placeholder right">Reyes Magos</div>
-    </section>
+    <footer>La Ruleta del Pesebre · Juego entre amigos</footer>
   </main>
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <dialog id="winnerDialog" class="winner-dialog">
+    <div class="winner-card">
+      <button id="closeWinner" class="close-dialog" type="button" aria-label="Cerrar">×</button>
+      <div class="winner-star">★</div>
+      <p>Y el elegido del pesebre es...</p>
+      <h2 id="winnerName">Viviana</h2>
+      <div class="hallelujah">✨ ¡ALELUYA! ✨</div>
+      <button id="spinAgain" class="spin-again" type="button">Girar otra vez</button>
+    </div>
+  </dialog>
+
+  <script src="app.js" defer></script>
 </body>
 </html>
